@@ -1,0 +1,27 @@
+{
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "name": "bubblebox",
+  "version": "1.0.0",
+  "description": "Chat Application",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NvmberMan/BubbleBox.git"
+  },
+  "keywords": [
+    "Aplikasi",
+    "Chat"
+  ],
+  "author": "Rangga",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/NvmberMan/BubbleBox/issues"
+  },
+  "homepage": "https://github.com/NvmberMan/BubbleBox#readme"
+}
