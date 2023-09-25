@@ -86,31 +86,52 @@ exports.leaveServerRoom = async (req, res) => {
 
   const findServer = await ServerRoom.findOne({ _id: server_id });
   if (!findServer) throw "Server Id " + server_id + " Not Found";
-
-  //check server member if more than 1 we LEAVE
   const usersOnThisServer = await User.find({ "servers._id": server_id });
-  if (usersOnThisServer.length > 1) {
-    // throw "This server has more than one member, so it cannot be deleted.";
 
-    await ServerRoom.updateOne(
+  if (usersOnThisServer.length > 1) {
+    //check owner
+    const roleUser = findServer.members.find((u) => u._id === payload.id);
+    if (roleUser.role === "Owner") {
+      //saya ingin ketika role dia adalah owner, otomatis salah salah satu member di server ini akan menjadi owner
+      //tolong tulis disini
+
+      const newOwner = findServer.members.find((u) => u._id !== payload.id);
+      newOwner.role = "Owner"; // Mengubah peran pemilik baru menjadi "Owner"
+
+      // // Update peran pemilik baru di server
+      const updatedServer = await ServerRoom.findOneAndUpdate(
+        {
+          _id: server_id,
+          "members._id" : newOwner._id
+        },
+        {
+          $set: { "members.$.role": newOwner.role }, // Mengatur kembali array members dengan peran baru
+        },
+        { new: true }
+      );
+
+      // if (!updatedServer) {
+      //   throw "Failed to update server with new owner";
+      // }
+    }
+
+    await ServerRoom.findOneAndUpdate(
       {
         _id: server_id,
       },
       {
         $pull: {
           members: {
-            _id: payload._id, //jika ingin mengkick, tinggal ganti menjadi id si user
+            _id: payload.id,
           },
         },
       }
     );
 
     //update on user collection
-    await User.updateMany(
+    await User.findOneAndUpdate(
       {
-        _id: {
-          $in: usersOnThisServer.map((user) => user._id),
-        },
+        _id: payload.id,
       },
       {
         $pull: {
@@ -199,9 +220,10 @@ exports.joinServer = async (req, res) => {
   if (!findServer) throw "Server not found";
 
   //check user already join
-  const isUserMember = findServer.members.some(member => member._id === payload.id);
-  if(isUserMember) throw "You already joined this server"
-
+  const isUserMember = findServer.members.some(
+    (member) => member._id === payload.id
+  );
+  if (isUserMember) throw "You already joined this server";
 
   //UPDATE TO SERVERROOM
   const newMember = {
@@ -218,18 +240,19 @@ exports.joinServer = async (req, res) => {
     throw "Failed to update server with new member";
   }
 
-
   //UPDATE TO USER
   const newServer = {
     _id: server_id,
-    name: updatedServer.name
-  }
-  const updatedUser = await User.findOneAndUpdate({
-    _id : payload.id
-  },
-  {
-    $push: {servers: newServer }
-  })
+    name: updatedServer.name,
+  };
+  const updatedUser = await User.findOneAndUpdate(
+    {
+      _id: payload.id,
+    },
+    {
+      $push: { servers: newServer },
+    }
+  );
 
   if (!updatedServer) {
     throw "Failed to join server";
