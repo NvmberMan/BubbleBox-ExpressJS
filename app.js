@@ -15,7 +15,7 @@ app.use('/server', require('./routes/serverroom'));
 const errorHandlers = require("./handlers/errorHandler");
 app.use(errorHandlers.notFound);
 app.use(errorHandlers.mongoseErrors);
-if(process.env.env === "Development")
+if(process.env.env === "DEVELOPMENT")
 {
   app.use(errorHandlers.developmentErrors);
 

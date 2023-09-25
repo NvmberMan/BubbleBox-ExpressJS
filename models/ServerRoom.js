@@ -17,7 +17,18 @@ const serverRoomSchema = new mongoose.Schema(
     image_url: {
       type: String,
       default: "https://asset.kompas.com/crops/3Fs4i0nalLcEOHaiKO_TqtBueMM=/431x76:1349x689/750x500/data/photo/2023/07/24/64be1b4a76292.jpg"
-    }
+    },
+    members: [
+      {
+        _id: {
+          type: String
+        },
+        role: {
+          type: String,
+          default: "Owner"
+        }
+      }
+    ]
   },
   {
     timestamps: true,

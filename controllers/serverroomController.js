@@ -43,6 +43,11 @@ exports.createServerRoom = async (req, res) => {
     name,
     tag_line: tag_line || "Server Tagline",
     description: description || "Server Description",
+    members: [
+      {
+        _id: payload.id,
+      },
+    ],
   });
 
   await serverroom.save();
@@ -85,27 +90,153 @@ exports.leaveServerRoom = async (req, res) => {
   //check server member if more than 1 we LEAVE
   const usersOnThisServer = await User.find({ "servers._id": server_id });
   if (usersOnThisServer.length > 1) {
-    // Jika lebih dari satu pengguna, maka pengguna akan meninggalkan server
-    throw "This server has more than one member, so it cannot be deleted.";
+    // throw "This server has more than one member, so it cannot be deleted.";
+
+    await ServerRoom.updateOne(
+      {
+        _id: server_id,
+      },
+      {
+        $pull: {
+          members: {
+            _id: payload._id, //jika ingin mengkick, tinggal ganti menjadi id si user
+          },
+        },
+      }
+    );
+
+    //update on user collection
+    await User.updateMany(
+      {
+        _id: {
+          $in: usersOnThisServer.map((user) => user._id),
+        },
+      },
+      {
+        $pull: {
+          servers: {
+            _id: server_id,
+          },
+        },
+      }
+    );
+
+    res.json({
+      message: "You Successfully Leave Server",
+      tes: usersOnThisServer,
+    });
+  } else {
+    //update on user collection
+    await User.updateMany(
+      {
+        _id: {
+          $in: usersOnThisServer.map((user) => user._id),
+        },
+      },
+      {
+        $pull: {
+          servers: {
+            _id: server_id,
+          },
+        },
+      }
+    );
+
+    // Hapus server dari koleksi ServerRoom
+    await ServerRoom.deleteOne({ _id: server_id });
+
+    res.json({
+      message: "You Successfully Delete Server",
+      tes: usersOnThisServer,
+    });
   }
+};
 
-  await User.updateMany(
-    { _id: { $in: usersOnThisServer.map((user) => user._id) } },
-    { $pull: { servers: { _id: server_id } } }
+exports.getServerMember = async (req, res) => {
+  const payload = req.payload;
+  const { server_id } = req.body;
+
+  if (!server_id) throw "server id required";
+
+  const findServer = await ServerRoom.findOne({ _id: server_id });
+  if (!findServer) throw "Server Id " + server_id + " Not Found";
+  const Members = [];
+  await Promise.all(
+    findServer.members.map(async (row) => {
+      const user = await User.findOne({ _id: row._id }).select(
+        "-servers -password  -email -createdAt -updatedAt"
+      );
+
+      try {
+        const memberRole = findServer.members.find(
+          (member) => member._id === row._id
+        );
+        Members.push({ user, role: memberRole.role });
+      } catch (error) {
+        throw error;
+      }
+    })
   );
-
-  // Hapus pesan yang terkait dengan server yang dihapus
-  // await ServerMessage.deleteMany({ serverRoom: server_id });
-
-  // Hapus server dari koleksi ServerRoom
-  await ServerRoom.deleteOne({ _id: server_id });
+  // const usersOnThisServer = await User.find({ "servers._id": server_id });
 
   res.json({
-    message: "You left the server and the server has been deleted.",
+    // ServerData: findServer,
+    Members: Members,
   });
+};
 
-//   res.json({
-//     tes: findServer,
-//     a: usersOnThisServer,
-//   });
+exports.joinServer = async (req, res) => {
+  const payload = req.payload;
+  const { server_id } = req.body;
+
+  if (!server_id) throw "server id required";
+
+  if (!server_id || !/^[0-9a-fA-F]{24}$/.test(server_id)) {
+    return res.status(400).json({ error: "Invalid server id format" });
+  }
+
+  const findServer = await ServerRoom.findOne({ _id: server_id });
+  if (!findServer) throw "Server not found";
+
+  //check user already join
+  const isUserMember = findServer.members.some(member => member._id === payload.id);
+  if(isUserMember) throw "You already joined this server"
+
+
+  //UPDATE TO SERVERROOM
+  const newMember = {
+    _id: payload.id, // ID user yang bergabung
+    role: "Member", // Atur peran sesuai kebutuhan
+  };
+  const updatedServer = await ServerRoom.findOneAndUpdate(
+    { _id: server_id },
+    { $push: { members: newMember } }, // Menambahkan anggota ke dalam array 'members'
+    { new: true } // Opsi 'new' untuk mengembalikan dokumen yang telah diperbarui
+  );
+
+  if (!updatedServer) {
+    throw "Failed to update server with new member";
+  }
+
+
+  //UPDATE TO USER
+  const newServer = {
+    _id: server_id,
+    name: updatedServer.name
+  }
+  const updatedUser = await User.findOneAndUpdate({
+    _id : payload.id
+  },
+  {
+    $push: {servers: newServer }
+  })
+
+  if (!updatedServer) {
+    throw "Failed to join server";
+  }
+
+  res.json({
+    message: "Successfully joined server",
+    server: updatedServer,
+  });
 };
