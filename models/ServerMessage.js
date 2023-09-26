@@ -2,15 +2,13 @@ const mongoose = require("mongoose");
 
 const serverMessageSchema = new mongoose.Schema(
   {
-    serverRoom: {
-      type: mongoose.Schema.Types.ObjectId,
+    server_id: {
+      type: String,
       required: "ServerRoom is required!",
-      ref: "ServerRoom"
     },
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
+    user_id: {
+      type: String,
       required: "User is required!",
-      ref: "User"
     },
     message:{
       type: String,

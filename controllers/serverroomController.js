@@ -25,11 +25,16 @@ exports.getAllServerRoomByPerUser = async (req, res) => {
     })
   );
 
+  const sortedServers = serversInUser.map((data) => {
+    const server = servers.find((s) => s._id.toString() === data._id.toString());
+    return server;
+  });
+
   res.json({
     user_id: user._id,
     user_name: user.username,
     user_image: user.image_url,
-    server_data: servers,
+    server_data: sortedServers,
   });
 };
 

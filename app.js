@@ -10,6 +10,7 @@ app.use(require('cors')())
 //bring in the routes
 app.use('/user', require('./routes/user'));
 app.use('/server', require('./routes/serverroom'));
+app.use('/message', require('./routes/servermessage'));
 
 //Setup Error Handler
 const errorHandlers = require("./handlers/errorHandler");
