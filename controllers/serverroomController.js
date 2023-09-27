@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const ServerRoom = mongoose.model("ServerRoom");
 const User = mongoose.model("User");
+const ServerMessage = mongoose.model("ServerMessage");
 
 exports.getAllServerRoom = async (req, res) => {
   const payload = req.payload;
@@ -26,7 +27,9 @@ exports.getAllServerRoomByPerUser = async (req, res) => {
   );
 
   const sortedServers = serversInUser.map((data) => {
-    const server = servers.find((s) => s._id.toString() === data._id.toString());
+    const server = servers.find(
+      (s) => s._id.toString() === data._id.toString()
+    );
     return server;
   });
 
@@ -87,39 +90,42 @@ exports.leaveServerRoom = async (req, res) => {
   const payload = req.payload;
   const { server_id } = req.body;
 
+  //CHECKING FRONTEND SENDING SERVER_ID BODY
   if (!server_id) throw "server id required";
 
+  //CHEKING IF SERVER IS FOUND IN DATABASE
   const findServer = await ServerRoom.findOne({ _id: server_id });
   if (!findServer) throw "Server Id " + server_id + " Not Found";
+
+  //GETTING ALL USER INT THIS SERVER
   const usersOnThisServer = await User.find({ "servers._id": server_id });
 
+  //CHECK IF USER MORE THAN 1 = LEAVE SERVER | KEEP SERVER
   if (usersOnThisServer.length > 1) {
-    //check owner
+    //CHEKING OWNERSHIP
     const roleUser = findServer.members.find((u) => u._id === payload.id);
+
+    //CHECK IF THIS USER IS OWNER, CHANGE ANTOHER MEMBER TO OWNER
     if (roleUser.role === "Owner") {
-      //saya ingin ketika role dia adalah owner, otomatis salah salah satu member di server ini akan menjadi owner
-      //tolong tulis disini
-
+      //GETTING RANDOM MEMBER AND SET ROLE TO OWNER
       const newOwner = findServer.members.find((u) => u._id !== payload.id);
-      newOwner.role = "Owner"; // Mengubah peran pemilik baru menjadi "Owner"
+      newOwner.role = "Owner";
 
-      // // Update peran pemilik baru di server
-      const updatedServer = await ServerRoom.findOneAndUpdate(
+      //SET "MEMBERS COLLECTION" IN SERVERROOM DATABASE | CHANGING MEMBER ROLE
+      await ServerRoom.findOneAndUpdate(
         {
-          _id: server_id,
-          "members._id" : newOwner._id
+          _id: server_id, //FIND SERVER WITH SERVER_ID
+          "members._id": newOwner._id, //FIND MEMBERS ID WITH NEWOWNER ID
         },
         {
-          $set: { "members.$.role": newOwner.role }, // Mengatur kembali array members dengan peran baru
+          $set: { "members.$.role": newOwner.role }, // UPDATE FOUNDED MEMBER, AND SET THE ROLE WITH OWNER
         },
         { new: true }
       );
-
-      // if (!updatedServer) {
-      //   throw "Failed to update server with new owner";
-      // }
     }
 
+    //AFTER CHEKING OH THE TOP
+    //REMOVE THIS MEMBER IN SERVERROOM DATABASE ON MEMBERS COLLECTION
     await ServerRoom.findOneAndUpdate(
       {
         _id: server_id,
@@ -133,7 +139,7 @@ exports.leaveServerRoom = async (req, res) => {
       }
     );
 
-    //update on user collection
+    //DONT FORGET REMOVE TOO IN USER DATABASE ON SERVERS COLLECTION
     await User.findOneAndUpdate(
       {
         _id: payload.id,
@@ -147,17 +153,17 @@ exports.leaveServerRoom = async (req, res) => {
       }
     );
 
+    //RESPONSE TO FRONTEND
     res.json({
       message: "You Successfully Leave Server",
       tes: usersOnThisServer,
     });
-  } else {
-    //update on user collection
-    await User.updateMany(
+  } else { //IF MEMBER ONLY 1 PERSON AND YOU THE "OWNER"
+    
+    //REMOVING "SERVERS COLLECTION ARRAY" ON USER DATABASE
+    await User.findOneAndUpdate(
       {
-        _id: {
-          $in: usersOnThisServer.map((user) => user._id),
-        },
+        _id: payload.id,
       },
       {
         $pull: {
@@ -168,7 +174,10 @@ exports.leaveServerRoom = async (req, res) => {
       }
     );
 
-    // Hapus server dari koleksi ServerRoom
+    //DELETE ALL MESSAGE "BECAUSE WANT TO DELETE"
+    await ServerMessage.deleteMany({"server_id": server_id});
+
+    //DELETE SERVERROOM
     await ServerRoom.deleteOne({ _id: server_id });
 
     res.json({
