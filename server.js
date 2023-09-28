@@ -90,7 +90,33 @@ io.on("connection", async (socket) => {
 
   socket.on("sendMessage", async ({serverRoomId, message}) => {
     const serverRoomData = await ServerRoom.findOne({"_id": serverRoomId});
+    const memberServer = await User.find({ "servers._id": serverRoomId });
 
+    if(memberServer && memberServer.length > 1)
+    {
+      for (const u of memberServer) {
+        // Temukan indeks data server yang akan dipindahkan dalam array servers
+        const serverIndexToMove = u.servers.findIndex(
+          (server) => server._id === serverRoomId
+        );
+      
+        if (serverIndexToMove !== -1) {
+          // Simpan data server yang akan dipindahkan
+          const serverToMove = u.servers[serverIndexToMove];
+      
+          // Hapus data server dari posisi awalnya dalam array servers
+          u.servers.splice(serverIndexToMove, 1);
+      
+          // Sisipkan data server ke posisi pertama dalam array servers
+          u.servers.unshift(serverToMove);
+      
+          // Simpan perubahan ke MongoDB
+          await u.save();
+        }
+      }      
+    }
+
+    //BROADCAST TO ALL MEMBER
     socket.broadcast.in(serverRoomId).emit("newMessage", {
       server_id: serverRoomId,
       server_name: serverRoomData.name,

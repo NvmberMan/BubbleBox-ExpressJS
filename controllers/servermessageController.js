@@ -19,6 +19,22 @@ exports.sendMessage = async (req, res) => {
     message: message,
   });
 
+  const user = await User.findOne({ _id: payload.id });
+  if (!user) throw new Error("User not found");
+
+  const indexToMove = user.servers.findIndex(
+    (server) => server._id === server_id
+  );
+
+  // CHECK IF ELEMENT IS FOUNDED
+  if (indexToMove === -1) {
+    throw new Error("ServerRoom not found in user's servers " + indexToMove);
+  }
+  const serverRoomToMove = user.servers[indexToMove];
+  user.servers.splice(indexToMove, 1);
+  user.servers.unshift(serverRoomToMove);
+  await user.save();
+
   res.json({
     message: "Success Send Message",
   });
@@ -44,12 +60,15 @@ exports.getAllData = async (req, res) => {
       // Gunakan Promise.all untuk menunggu semua operasi async dalam map kedua selesai
       await Promise.all(
         message.map(async (m) => {
-          const userMessage = await User.findOne({ "_id": m.user_id }).select("-email -password -createdAt -updatedAt -servers -status -__v");
+          const userMessage = await User.findOne({ _id: m.user_id }).select(
+            "-email -password -createdAt -updatedAt -servers -status -__v"
+          );
           newMessage.push({
             _id: m._id,
             user_id: userMessage._id,
             user_name: userMessage.username,
             user_image: userMessage.image_url,
+            readed: m.readed,
             message: m.message,
           });
         })
@@ -61,7 +80,6 @@ exports.getAllData = async (req, res) => {
         );
         return mes;
       });
-
 
       servers.push({
         _id: server._id,
@@ -103,7 +121,6 @@ exports.getAllData = async (req, res) => {
   //   })
   // })
 
-
   // const sortedMessage = newMessage.map((d) => {
   //   const mes = newMessage.find(
   //     (s) => s._id.toString() === d._id.toString()
@@ -116,5 +133,35 @@ exports.getAllData = async (req, res) => {
     user_name: user.username,
     user_image: user.image_url,
     server_data: sortedServers,
+  });
+};
+
+exports.updateReadedMessage = async (req, res) => {
+  const payload = req.payload;
+  const { server_id } = req.body;
+
+  const user = await User.findOne({ _id: payload.id });
+
+  const readedData = {
+    user_id: payload.id,
+    user_name: user.username,
+  };
+
+  // Temukan pesan yang cocok dengan server_id dan belum memiliki user_id yang sama
+  const messagesToUpdate = await ServerMessage.find({
+    server_id: server_id,
+    "readed.user_id": { $ne: payload.id }, // Pastikan tidak ada user_id yang sama
+  });
+
+  // Update setiap pesan dengan menambahkan readedData ke dalam array readed
+  const updatePromises = messagesToUpdate.map(async (message) => {
+    message.readed.push(readedData);
+    await message.save();
+  });
+
+  await Promise.all(updatePromises);
+
+  res.json({
+    message: "Successfully readed all message",
   });
 };

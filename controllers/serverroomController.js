@@ -72,7 +72,7 @@ exports.createServerRoom = async (req, res) => {
   }
 
   // Menambahkan ID server room baru ke dalam array "servers"
-  user.servers.push({
+  user.servers.unshift({
     _id: newServerRoomId,
     name: name,
   });

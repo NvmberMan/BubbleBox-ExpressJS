@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema(
     },
     servers: [{
       _id: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: String,
         ref: "ServerRoom",
       },
       name: {

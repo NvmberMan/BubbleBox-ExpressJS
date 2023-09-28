@@ -13,7 +13,18 @@ const serverMessageSchema = new mongoose.Schema(
     message:{
       type: String,
       required: "Message is required!"
-    }
+    },
+    readed: [
+      {
+        user_id: {
+          type: String,
+          required: "User id is required"
+        },
+        user_name: {
+          type: String,
+        }
+      }
+    ]
   },
   {
     timestamps: true,
