@@ -49,6 +49,7 @@ const io = new Server(server , {
 const jwt = require("jwt-then");
 const TokenBlackList = mongoose.model("TokenBlackList");
 const User = mongoose.model("User");
+const ServerRoom = mongoose.model("ServerRoom");
 
 io.use( async (socket, next) => {
 const token = socket.handshake.query.token;
@@ -78,23 +79,28 @@ io.on("connection", async (socket) => {
     console.log("Disconnected: " + user.username);
   });
 
-  socket.on("joinRoom", ({serverRoomId}) => {
-    console.log("someone join " + serverRoomId)
+  socket.on("joinServer", ({serverRoomId}) => {
+    console.log(user.username + " join " + serverRoomId)
     socket.join(serverRoomId);
   })
-  socket.on("leaveRoom", ({serverRoomId}) => {
-    console.log("someone leave " + serverRoomId)
+  socket.on("leaveServer", ({serverRoomId}) => {
+    console.log(user.username + " leave " + serverRoomId)
     socket.leave(serverRoomId);
   })
 
-  socket.on("sendMessage", ({serverRoomId, message}) => {
-    socket.broadcast.to(serverRoomId).emit("newMessage", {
+  socket.on("sendMessage", async ({serverRoomId, message}) => {
+    const serverRoomData = await ServerRoom.findOne({"_id": serverRoomId});
+
+    socket.broadcast.in(serverRoomId).emit("newMessage", {
+      server_id: serverRoomId,
+      server_name: serverRoomData.name,
+      server_image: serverRoomData.image_url,
       user_id: socket.userId,
       user_name: user.username,
       user_image: user.image_url,
       message: message
     });
-    console.log("New Message :" + message)
+    console.log("New Message :" + message + " to " + serverRoomId)
   });
 });
 

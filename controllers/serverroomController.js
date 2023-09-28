@@ -80,9 +80,25 @@ exports.createServerRoom = async (req, res) => {
   // Menyimpan perubahan pada dokumen pengguna
   await user.save();
 
+
+
+
+  let newServer = {};
+ 
+  newServer = {
+    _id: serverroom._id,
+    name: serverroom.name,
+    description: serverroom.description,
+    tag_line: serverroom.tag_line,
+    image_url: serverroom.image_url,
+    message: [],
+  };
+
+
+
   res.json({
     message: "Serverroom created!",
-    data: serverroom,
+    data: newServer,
   });
 };
 
@@ -158,8 +174,9 @@ exports.leaveServerRoom = async (req, res) => {
       message: "You Successfully Leave Server",
       tes: usersOnThisServer,
     });
-  } else { //IF MEMBER ONLY 1 PERSON AND YOU THE "OWNER"
-    
+  } else {
+    //IF MEMBER ONLY 1 PERSON AND YOU THE "OWNER"
+
     //REMOVING "SERVERS COLLECTION ARRAY" ON USER DATABASE
     await User.findOneAndUpdate(
       {
@@ -175,7 +192,7 @@ exports.leaveServerRoom = async (req, res) => {
     );
 
     //DELETE ALL MESSAGE "BECAUSE WANT TO DELETE"
-    await ServerMessage.deleteMany({"server_id": server_id});
+    await ServerMessage.deleteMany({ server_id: server_id });
 
     //DELETE SERVERROOM
     await ServerRoom.deleteOne({ _id: server_id });
@@ -255,7 +272,7 @@ exports.joinServer = async (req, res) => {
   }
 
   //UPDATE TO USER
-  const newServer = {
+  const newServerToUser = {
     _id: server_id,
     name: updatedServer.name,
   };
@@ -264,7 +281,7 @@ exports.joinServer = async (req, res) => {
       _id: payload.id,
     },
     {
-      $push: { servers: newServer },
+      $push: { servers: newServerToUser },
     }
   );
 
@@ -272,8 +289,47 @@ exports.joinServer = async (req, res) => {
     throw "Failed to join server";
   }
 
+  let newServer = {};
+  let newMessage = [];
+  let serverJoinedMessage = await ServerMessage.find({ server_id: server_id });
+  if (!serverJoinedMessage) {
+    serverJoinedMessage = [];
+  }
+
+  //GETTING MESSAGE
+  await Promise.all(
+    serverJoinedMessage.map(async (m) => {
+      const userMessage = await User.findOne({ _id: m.user_id }).select(
+        "-email -password -createdAt -updatedAt -servers -status -__v"
+      );
+      newMessage.push({
+        _id: m._id,
+        user_id: userMessage._id,
+        user_name: userMessage.username,
+        user_image: userMessage.image_url,
+        message: m.message,
+      });
+    })
+  );
+
+  const sortedMessage = serverJoinedMessage.map((d) => {
+    const mes = newMessage.find(
+      (s) => s._id.toString() === d._id.toString()
+    );
+    return mes;
+  });
+
+  newServer = {
+    _id: updatedServer._id,
+    name: updatedServer.name,
+    description: updatedServer.description,
+    tag_line: updatedServer.tag_line,
+    image_url: updatedServer.image_url,
+    message: sortedMessage,
+  };
+
   res.json({
     message: "Successfully joined server",
-    server: updatedServer,
+    server: newServer,
   });
 };
