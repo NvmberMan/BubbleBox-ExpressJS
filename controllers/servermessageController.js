@@ -13,27 +13,33 @@ exports.sendMessage = async (req, res) => {
   const serverrooms = await ServerRoom.findOne({ _id: server_id });
   if (!serverrooms) throw "Server not found";
 
+  const user = await User.findOne({ _id: payload.id });
+  if (!user) throw new Error("User not found");
+
   await ServerMessage.create({
     server_id: server_id,
     user_id: payload.id,
     message: message,
+    readed: [{
+      user_id: user._id,
+      user_name: user.username
+    }]
   });
 
-  const user = await User.findOne({ _id: payload.id });
-  if (!user) throw new Error("User not found");
 
-  const indexToMove = user.servers.findIndex(
-    (server) => server._id === server_id
-  );
+
+  // const indexToMove = user.servers.findIndex(
+  //   (server) => server._id === server_id
+  // );
 
   // CHECK IF ELEMENT IS FOUNDED
-  if (indexToMove === -1) {
-    throw new Error("ServerRoom not found in user's servers " + indexToMove);
-  }
-  const serverRoomToMove = user.servers[indexToMove];
-  user.servers.splice(indexToMove, 1);
-  user.servers.unshift(serverRoomToMove);
-  await user.save();
+  // if (indexToMove === -1) {
+  //   throw new Error("ServerRoom not found in user's servers " + indexToMove);
+  // }
+  // const serverRoomToMove = user.servers[indexToMove];
+  // user.servers.splice(indexToMove, 1);
+  // user.servers.unshift(serverRoomToMove);
+  // await user.save();
 
   res.json({
     message: "Success Send Message",
@@ -147,21 +153,22 @@ exports.updateReadedMessage = async (req, res) => {
     user_name: user.username,
   };
 
-  // Temukan pesan yang cocok dengan server_id dan belum memiliki user_id yang sama
-  const messagesToUpdate = await ServerMessage.find({
-    server_id: server_id,
-    "readed.user_id": { $ne: payload.id }, // Pastikan tidak ada user_id yang sama
-  });
-
-  // Update setiap pesan dengan menambahkan readedData ke dalam array readed
-  const updatePromises = messagesToUpdate.map(async (message) => {
-    message.readed.push(readedData);
-    await message.save();
-  });
-
-  await Promise.all(updatePromises);
+  // Update semua pesan dengan server_id yang sesuai dan belum memiliki user_id yang sama
+  const result = await ServerMessage.updateMany(
+    {
+      server_id: server_id,
+      "readed.user_id": { $ne: payload.id },
+    },
+    {
+      $push: {
+        readed: readedData,
+      },
+    }
+  );
 
   res.json({
     message: "Successfully readed all message",
+    updatedCount: result.nModified, // Mengembalikan jumlah pesan yang telah diperbarui
   });
 };
+
