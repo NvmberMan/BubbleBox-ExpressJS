@@ -138,6 +138,8 @@ exports.getAllData = async (req, res) => {
     user_id: user._id,
     user_name: user.username,
     user_image: user.image_url,
+    user_email: user.email,
+    user_phone: user.phone_number,
     server_data: sortedServers,
   });
 };
