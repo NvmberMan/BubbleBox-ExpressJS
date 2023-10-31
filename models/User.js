@@ -12,7 +12,6 @@ const userSchema = new mongoose.Schema(
     },
     phone_number:{
       type: String,
-      required: "Phone number is required!",
     },
     password: {
       type: String,
@@ -20,11 +19,11 @@ const userSchema = new mongoose.Schema(
     },
     status:{
       type: String,
-      default: "Do not disturb"
+      default: "Online"
     },
     image_url: {
       type: String,
-      default: "https://assets-global.website-files.com/61c1e40ed7ebf4469f048f43/61f024b62c3343182aa3917e_Logo%20Design.jpeg"
+      default: "Bubble.jpg"
     },
     servers: [{
       _id: {

@@ -2,6 +2,12 @@ const mongoose = require("mongoose");
 const ServerRoom = mongoose.model("ServerRoom");
 const User = mongoose.model("User");
 const ServerMessage = mongoose.model("ServerMessage");
+const fs = require("fs");
+const path = require("path");
+
+
+
+
 
 exports.getAllServerRoom = async (req, res) => {
   const payload = req.payload;
@@ -44,13 +50,14 @@ exports.getAllServerRoomByPerUser = async (req, res) => {
 exports.createServerRoom = async (req, res) => {
   const payload = req.payload;
   const { name, tag_line, description } = req.body;
-
+  const imageName = req.file ? req.file.filename : null;
   if (!name) throw "Name Server is Required!";
 
   const serverroom = new ServerRoom({
     name,
     tag_line: tag_line || "Server Tagline",
     description: description || "Server Description",
+    image_url: imageName || "bubbleserver.jpg",
     members: [
       {
         _id: payload.id,
@@ -94,7 +101,7 @@ exports.createServerRoom = async (req, res) => {
     message: [],
   };
 
-
+  
 
   res.json({
     message: "Serverroom created!",
@@ -333,3 +340,30 @@ exports.joinServer = async (req, res) => {
     server: newServer,
   });
 };
+
+
+
+
+
+
+exports.getDisplayImage = async (req, res) => {
+  const fileName = req.params.fileName;
+  const imagePath = path.join(__dirname, "../Images", fileName);
+  const failedImagePath = path.join(__dirname, "../Images", "bubbleserver.jpg");
+
+  // Periksa apakah file gambar ada
+  if (fs.existsSync(imagePath)) {
+    // Baca file gambar dari direktori
+    const image = fs.readFileSync(imagePath);
+
+    // Tentukan tipe konten sebagai gambar JPEG (sesuaikan dengan tipe gambar yang digunakan)
+    res.setHeader("Content-Type", "image/jpeg");
+
+    // Kirim file gambar sebagai respons
+    res.send(image);
+  } else {
+    // Jika file tidak ditemukan, kirim respons 404 (Not Found)
+    throw "Gambar tidak ditemukan";
+  }
+};
+
