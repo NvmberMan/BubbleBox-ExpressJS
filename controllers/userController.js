@@ -114,6 +114,7 @@ exports.updateUserProfil = async (req, res) => {
       $set: {
         username: username,
         phone_number: phone_number,
+        image_url: "user_" + payload.id + ".jpg",
         email: email,
       },
     },

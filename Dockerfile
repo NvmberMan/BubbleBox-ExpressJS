@@ -4,8 +4,11 @@ WORKDIR /app
 
 COPY package* .
 
-RUN npm i
+RUN npm install
+
+# Install nodemon globally
+RUN npm install -g nodemon
 
 COPY . .
 
-CMD ["node", "index.js"]
+CMD ["npm", "start"]

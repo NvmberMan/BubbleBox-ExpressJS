@@ -1,13 +1,28 @@
 require("dotenv").config();
 
 const mongoose = require("mongoose");
+// mongoose.connect(
+//   "mongodb://tohpati:tohpati@localhost:27018/?authMechanism=DEFAULT",
+//   {
+//     useUnifiedTopology: true,
+//     useNewUrlParser: true,
+//   }
+// );
+// mongoose.connect(
+//   "mongodb+srv://bubbleboxalpha0:sKGqGmhNPQ23eNak@bubbleboxalpha1.iytaiou.mongodb.net/bubbleboxalpha0/?retryWrites=true&w=majority&appName=AtlasApp",
+//   {
+//     useUnifiedTopology: true,
+//     useNewUrlParser: true,
+//   }
+// );
 mongoose.connect(
-  "mongodb://tohpati:tohpati@localhost:27018/?authMechanism=DEFAULT",
+  "mongodb+srv://bubbleboxalpha0:sKGqGmhNPQ23eNak@bubbleboxalpha1.iytaiou.mongodb.net/?retryWrites=true&w=majority&appName=AtlasApp",
   {
     useUnifiedTopology: true,
     useNewUrlParser: true,
   }
 );
+
 // mongoose.connect("mongodb://tohpati:tohpati@127.0.0.1:27018/bubblebox?authMechanism=DEFAULT", {
 //         useUnifiedTopology: true,
 //     useNewUrlParser: true
@@ -114,6 +129,8 @@ io.on("connection", async (socket) => {
   });
 });
 
-server.listen(3001, () => {
-  console.log("Server listening on port 3000");
+const PORT = process.env.PORT || 8080;
+
+server.listen(PORT, () => {
+  console.log("Server listening on port " + PORT);
 });
